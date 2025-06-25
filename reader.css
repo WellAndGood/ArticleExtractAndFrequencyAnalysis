@@ -1,0 +1,26 @@
+#content {
+  user-select: none;
+  -webkit-user-select: none; /* For Safari / older Chromium */
+  -moz-user-select: none;    /* For Firefox */
+  -ms-user-select: none;     /* For IE/Edge */
+
+  padding: 10px 25px;
+  border: 1px solid #ccc;
+}
+
+.word {
+  display: inline-block;
+  padding: 1px 1px;
+  margin: 0px;
+  border-radius: 3px;
+  transition: background-color 0.2s;
+}
+
+.word:hover {
+  background-color: rgba(0, 0, 0, 0.1);  /* Slight dark hover effect */
+  cursor: pointer;
+}
+
+.word.active {
+  background-color: rgba(0, 0, 0, 0.25); /* Lasting darker shade when active */
+}

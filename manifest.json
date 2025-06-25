@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Article Reader View",
+  "version": "1.0",
+  "description": "Extracts main article content and shows it cleanly.",
+  "permissions": ["scripting", "tabs", "activeTab", "storage"],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["Readability.js", "JSDOMParser.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

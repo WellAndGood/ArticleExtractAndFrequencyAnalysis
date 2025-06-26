@@ -24,3 +24,45 @@
 .word.active {
   background-color: rgba(0, 0, 0, 0.25); /* Lasting darker shade when active */
 }
+
+.highlighted-word {
+  position: relative;/* Light yellow for visibility */
+}
+
+.highlighted-word:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 120%;
+  left: 0;
+  background-color: rgba(0, 0, 0, 0.8);  /* ✅ Add this line for dark tooltip background */
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 1;
+  font-size: 12px;
+}
+
+.rank-tier-1 {
+  background-color: #c8e6c9; /* Light green */
+}
+
+.rank-tier-2 {
+  background-color: #fff9c4; /* Light yellow */
+}
+
+.rank-tier-3 {
+  background-color: #ffe0b2; /* Light orange */
+}
+
+.rank-tier-4 {
+  background-color: #ffcdd2; /* Light red/pink */
+}
+
+.rank-tier-5 {
+  background-color: #d1c4e9; /* Light purple */
+}
+
+.rank-tier-default {
+  background-color: #e0e0e0; /* Light gray (fallback) */
+}

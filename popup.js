@@ -1,12 +1,13 @@
 
+let lastExtractedArticle = "";  // Store the extracted text globally in the popup scope
+let articleTitle = "";  // Store the article title globally in the popup scope
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Popup loaded...');
 
     const button = document.getElementById("openReader");
     const output = document.getElementById("output");
     const exportButton = document.getElementById("exportButton");
-
-    let lastExtractedArticle = "";  // Store the extracted text globally in the popup scope
 
     if (!button) {
         console.error("Button with ID 'openReader' not found in popup.html.");
@@ -29,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Step 2: Run Readability on the active page
         chrome.scripting.executeScript({
             target: { tabId: tab.id },
-            func: runReadabilitySafely
+            func: runReadabilitySafely 
         }, (results) => {
             if (chrome.runtime.lastError) {
                 console.error(chrome.runtime.lastError.message);
@@ -37,7 +38,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            let articleText = results[0]?.result;
+            console.log("Readability script executed, results:", results);
+            let result = results[0]?.result;
+            if (!result) return;
+
+            articleTitle = result.title;
+            console.log("articleTitle", articleTitle)
+            let articleText = result.content;
+
             articleText = cleanSpacing(articleText);
             articleText = addNewlinesAfterSentences(articleText);
             articleText = improveSpacing(articleText);
@@ -47,7 +55,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // ✅ Make export button visible
             exportButton.style.display = "block";
-
         });
     });
 
@@ -61,8 +68,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            chrome.storage.local.set({ exportedArticle: lastExtractedArticle }, () => {
-                console.log("Article text saved to chrome.storage. Opening new tab...");
+            console.log("articleTitle", articleTitle);
+
+            chrome.storage.local.set({
+                exportedArticle: lastExtractedArticle,
+                exportedTitle: articleTitle
+            }, () => {
+                console.log("Article text and title saved to chrome.storage. Opening reader...");
                 chrome.tabs.create({
                     url: chrome.runtime.getURL("reader.html")
                 });
@@ -73,11 +85,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function runReadabilitySafely() {
     try {
-        const docClone = document.cloneNode(true); // Deep clone
+        const docClone = document.cloneNode(true);
         const article = new Readability(docClone).parse();
-        return article ? article.textContent : "No readable article found.";
+        console.log("Readability article parsed:", article);
+        if (article) {
+            return {
+                title: article.title,
+                content: article.textContent
+            };
+        } else {
+            return {
+                title: "No title found",
+                content: "No readable article found."
+            };
+        }
     } catch (error) {
-        return "Error running Readability: " + error.message;
+        return {
+            title: "Error",
+            content: "Error running Readability: " + error.message
+        };
     }
 }
 
@@ -107,8 +133,8 @@ function improveSpacing(text) {
         .replace(/\n{3,}/g, '\n\n');
 }
 
-chrome.runtime.onMessage.addListener((message) => {
-    if (message.action === "openReader") {
-        document.getElementById("content").innerText = message.content;
-    }
-});
+// chrome.runtime.onMessage.addListener((message) => {
+//     if (message.action === "openReader") {
+//         document.getElementById("content").innerText = message.content;
+//     }
+// });

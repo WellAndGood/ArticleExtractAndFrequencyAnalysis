@@ -1,18 +1,50 @@
-const container = document.getElementById('content');
-container.innerHTML = '';  // Clear placeholder text
 let wordIndex = 0;  // Global counter across all sentences
 let wordList = [];
 let contractionSuffixes = [];
 let hyphenatedWords = [];
 
+const titleContainer = document.getElementById('titleContainer');
+const contentContainer = document.getElementById('content');
+const allContainers = [contentContainer, titleContainer];
+
+const posMap = {
+    a: "Article / Determiner",   // the, a, my, your, their, etc.
+    v: "Verb",                   // be, do, have, go, get, say, make, etc.
+    p: "Pronoun",                // I, you, he, she, it, we, they, etc.
+    c: "Conjunction",            // and, but, or, if, etc.
+    i: "Preposition",            // of, in, to, with, from, etc.
+    d: "Demonstrative / Determiner",  // this, that, what, all, etc.
+    t: "To-infinitive marker",   // to (when before verb, e.g., "to go")
+    r: "Adverb / Adverbial",     // so
+    x: "Negation / Other",       // n't, not
+};
+
 // The main loader for words and rank
 async function initReaderPage() {
-    await loadWordList();  // Wait for JSON to fully load
+    await loadWordList();
     console.log("Word list ready. Now rendering article...");
-    renderArticleText();   // render word/sentence DOM
+    loadAndRenderArticle();
 }
 
-initReaderPage()
+initReaderPage();
+
+function loadAndRenderArticle() {
+    chrome.storage.local.get(['exportedArticle', 'exportedTitle'], (result) => {
+        const articleText = result.exportedArticle || "No article found.";
+        const articleTitle = result.exportedTitle || "Untitled Article";
+
+        // ✅ Clear any previous content
+        titleContainer.innerHTML = '';
+        contentContainer.innerHTML = '';
+
+        // ✅ Render title with the same word highlighting logic
+        renderTextBlock(articleTitle, titleContainer, 'h1');
+
+        // ✅ Render article body
+        renderTextBlock(articleText, contentContainer);
+    });
+    chrome.storage.local.remove(['exportedArticle', 'exportedTitle']);
+}
 
 async function loadWordList() {
     const url = chrome.runtime.getURL('top5000LexemesAsLemmas.json');
@@ -49,11 +81,12 @@ function generateSafeName(text) {
         .toLowerCase();               // Optional: make lowercase for consistency
 }
 
-function renderArticleText() {
-    chrome.storage.local.get(['exportedArticle'], (result) => {
-        const articleText = result.exportedArticle || "No article found.";
-        const sentences = splitIntoSentences(articleText);
+function renderTextBlock(text, containerElement, wrapperTag = 'p') {
+
+        const sentences = splitIntoSentences(text);
         sentences.forEach(sentence => {
+
+            const block = document.createElement(wrapperTag);
             const p = document.createElement('p');
             sentence.trim().split(/\s+/).forEach(word => {
 
@@ -70,7 +103,9 @@ function renderArticleText() {
                         if (part.rank !== 9999) {
                             wordDiv.classList.add('highlighted-word');
                             wordDiv.classList.add(getRankColorClass(part.rank));
-                            wordDiv.setAttribute('title', `Rank: ${part.rank}`);
+                            const posFull = posMap[part.pos] || "Unknown POS";
+
+                            wordDiv.setAttribute('title', `Rank: ${part.rank}, Lemma: ${part.lemma}, Part of Speech: ${posFull}`);
                         }
 
                         wordDiv.textContent = part.text;
@@ -79,8 +114,8 @@ function renderArticleText() {
                             wordDiv.classList.toggle('active');
                         });
 
-                        p.appendChild(wordDiv);
-                        p.appendChild(document.createTextNode(' '));
+                        block.appendChild(wordDiv);
+                        block.appendChild(document.createTextNode(' '));
                     });
                 } else {
                     // Word totally not found → still render the original word as-is
@@ -90,43 +125,13 @@ function renderArticleText() {
                     wordDiv.setAttribute('data-index', wordIndex++);
                     wordDiv.textContent = word;
 
-                    p.appendChild(wordDiv);
-                    p.appendChild(document.createTextNode(' '));
+                    block.appendChild(wordDiv);
+                    block.appendChild(document.createTextNode(' '));
                 }
-
-
-
-                // const wordDiv = document.createElement('div');
-                // wordDiv.classList.add('word');
-                // wordDiv.setAttribute('data-name', generateSafeName(word));
-                // wordDiv.setAttribute('data-index', wordIndex++);
-
-                // const rank = getLemmaRankForWordWithFallbacks(cleanedWord);
-
-                // if (rank !== 9999) {
-                //     // console.log(`Word: ${cleanedWord}, Rank: ${rank}`);
-                //     wordDiv.classList.add('highlighted-word');
-                //     wordDiv.classList.add(getRankColorClass(rank));
-                //     wordDiv.setAttribute('title', `Rank: ${rank}`);
-                // } else {
-                //     // console.log(`Word: ${cleanedWord} not found in word list.`);
-                // }
-
-                // wordDiv.textContent = word;
-
-                // // Toggle highlight on click
-                // wordDiv.addEventListener('click', () => {
-                //     wordDiv.classList.toggle('active');
-                // });
-
-                // p.appendChild(wordDiv);
-                // p.appendChild(document.createTextNode(' '));  // Space between words
             });
-
-            container.appendChild(p);
+            containerElement.appendChild(block);
         });
-    });
-    chrome.storage.local.remove(['exportedArticle']);
+    chrome.storage.local.remove(['exportedArticle', 'exportedTitle']);
 }
 
 function getRankColorClass(rank) {
@@ -151,19 +156,11 @@ let dragEndWord = null;
 
 let isDragging = false;
 
-container.addEventListener('mousedown', (e) => {
-    const wordDiv = e.target.closest('.word');
-    if (wordDiv) {
-        isDragging = true;
-        dragStartWord = wordDiv;
-        previousLowIndex = null;
-        previousHighIndex = null;
-    }
-});
-
 function clearAllHighlights() {
-    container.querySelectorAll('.word.active').forEach(word => {
-        word.classList.remove('active');
+    allContainers.forEach(container => {
+        container.querySelectorAll('.word.active').forEach(word => {
+            word.classList.remove('active');
+        });
     });
 }
 
@@ -171,6 +168,10 @@ function getLemmaRankForWord(word) {
     if (!wordList || wordList.length === 0) return 9999;  // Defensive check in case wordList hasn't loaded yet
     const match = wordList.find(entry => entry.word?.trim().toLowerCase() === word.trim().toLowerCase());
     return match ? match.lemRank : 9999;
+}
+
+function getWordEntry(word) {
+    return wordList.find(entry => entry.word && entry.word?.toLowerCase() === word.toLowerCase()) || null;
 }
 
 function getLemmaRankWithParts(word) {
@@ -181,9 +182,14 @@ function getLemmaRankWithParts(word) {
     const lowerWord = cleanedWord.toLowerCase();
 
     // 1. Direct match
-    const directRank = getLemmaRankForWord(cleanedWord);
-    if (directRank !== 9999) {
-        return [{ text: word, rank: directRank }];
+    const directEntry = getWordEntry(cleanedWord);
+    if (directEntry) {
+        return [{
+            text: word,
+            rank: parseInt(directEntry.lemRank),
+            lemma: directEntry.lemma,
+            pos: directEntry.PoS
+        }];
     }
 
     const normalizedWord = normalizeApostrophes(lowerWord);
@@ -198,13 +204,24 @@ function getLemmaRankWithParts(word) {
             const base = word.slice(0, suffixStart);
             const suffixPart = word.slice(suffixStart);
 
-            const baseRank = getLemmaRankForWord(normalizeApostrophes(base.toLowerCase()));
-            const suffixRank = getLemmaRankForWord(normalizeApostrophes(suffixPart.toLowerCase()));
-            if (baseRank !== 9999 && suffixRank !== 9999) {
-                console.log(`Contraction fallback: "${word}" → "${base}" + "${suffix}"`);
+            const baseEntry = getWordEntry(base);
+            const suffixEntry = getWordEntry(suffix);
+
+            if (baseEntry && suffixEntry) {
+                console.log(`Contraction fallback: "${word}" → "${base}" + "${suffixPart}"`);
                 return [
-                    { text: base, rank: baseRank },
-                    { text: suffixPart, rank: suffixRank }
+                    {
+                        text: base,
+                        rank: parseInt(baseEntry.lemRank),
+                        lemma: baseEntry.lemma,
+                        pos: baseEntry.PoS
+                    },
+                    {
+                        text: suffixPart,
+                        rank: parseInt(suffixEntry.lemRank),
+                        lemma: suffixEntry.lemma,
+                        pos: suffixEntry.PoS
+                    }
                 ];
             }
         }
@@ -213,56 +230,77 @@ function getLemmaRankWithParts(word) {
     // Hyphen fallback
     if (word.includes('-')) {
         const parts = word.split('-').filter(p => p);
-        const partRanks = parts.map(part => getLemmaRankForWord(part));
-        if (partRanks.every(r => r !== 9999)) {
+        const partEntries = parts.map(part => getWordEntry(part));
+
+        if (partEntries.every(e => e)) {
             console.log(`Hyphen fallback: "${word}" → Parts:`, parts);
-            return parts.map((part, idx) => ({ text: part, rank: partRanks[idx] }));
+            return parts.map((part, idx) => ({
+                text: part,
+                rank: parseInt(partEntries[idx].lemRank),
+                lemma: partEntries[idx].lemma,
+                pos: partEntries[idx].PoS
+            }));
         }
     }
-
     return null;  // Total miss
 }
 
-container.addEventListener('mousemove', (e) => {
-    if (isDragging) {
+
+[contentContainer, titleContainer].forEach(container => {
+    container.addEventListener('mousedown', (e) => {
         const wordDiv = e.target.closest('.word');
+        console.log("mousedown on wordDiv", wordDiv);
         if (wordDiv) {
-            const newEndIndex = parseInt(wordDiv.getAttribute('data-index'));
-
-            // ✅ Clear previous range
-            if (previousLowIndex !== null && previousHighIndex !== null) {
-                clearRange(previousLowIndex, previousHighIndex);
-            }
-
-            // ✅ Apply new range
-            const startIndex = parseInt(dragStartWord.getAttribute('data-index'));
-            const low = Math.min(startIndex, newEndIndex);
-            const high = Math.max(startIndex, newEndIndex);
-
-            highlightRange(low, high);
-
-            // ✅ Track this new range for next move
-            previousLowIndex = low;
-            previousHighIndex = high;
+            isDragging = true;
+            dragStartWord = wordDiv;
+            previousLowIndex = null;
+            previousHighIndex = null;
         }
-    }
+    });
+
+    container.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            const wordDiv = e.target.closest('.word');
+            if (wordDiv) {
+                const newEndIndex = parseInt(wordDiv.getAttribute('data-index'));
+                if (previousLowIndex !== null && previousHighIndex !== null) {
+                    clearRange(container, previousLowIndex, previousHighIndex);
+                }
+
+                const startIndex = parseInt(dragStartWord.getAttribute('data-index'));
+                const low = Math.min(startIndex, newEndIndex);
+                const high = Math.max(startIndex, newEndIndex);
+
+                console.log("high", high);
+
+                highlightRange(container, low, high);
+
+                previousLowIndex = low;
+                previousHighIndex = high;
+            }
+        }
+    });
 });
 
-function highlightRange(low, high) {
-    container.querySelectorAll('.word').forEach(word => {
-        const index = parseInt(word.getAttribute('data-index'));
-        if (index >= low && index <= high) {
-            word.classList.add('active');
-        }
+function highlightRange(container, low, high) {
+    allContainers.forEach(container => {
+        container.querySelectorAll('.word').forEach(word => {
+            const index = parseInt(word.getAttribute('data-index'));
+            if (index >= low && index <= high) {
+                word.classList.add('active');
+            }
+        });
     });
 }
 
-function clearRange(low, high) {
-    container.querySelectorAll('.word').forEach(word => {
-        const index = parseInt(word.getAttribute('data-index'));
-        if (index >= low && index <= high) {
-            word.classList.remove('active');
-        }
+function clearRange(container, low, high) {
+    allContainers.forEach(container => {
+        container.querySelectorAll('.word').forEach(word => {
+            const index = parseInt(word.getAttribute('data-index'));
+            if (index >= low && index <= high) {
+                word.classList.remove('active');
+            }
+        });
     });
 }
 
@@ -272,17 +310,17 @@ document.addEventListener('mouseup', () => {
     dragEndWord = null;
 });
 
-function highlightRange(start, end) {
-    const low = Math.min(start, end);
-    const high = Math.max(start, end);
+// function highlightRange(start, end) {
+//     const low = Math.min(start, end);
+//     const high = Math.max(start, end);
 
-    container.querySelectorAll('.word').forEach(word => {
-        const index = parseInt(word.getAttribute('data-index'));
-        if (index >= low && index <= high) {
-            word.classList.add('active');
-        }
-    });
-}
+//     container.querySelectorAll('.word').forEach(word => {
+//         const index = parseInt(word.getAttribute('data-index'));
+//         if (index >= low && index <= high) {
+//             word.classList.add('active');
+//         }
+//     });
+// }
 
 function toggleWordActive(pElement) {
     if (!pElement.classList.contains('active')) {
@@ -290,9 +328,12 @@ function toggleWordActive(pElement) {
     }
 
 }
-container.addEventListener('dblclick', () => {
-    console.log('Double-click detected. Clearing all active highlights...');
-    container.querySelectorAll('.word.active').forEach(word => {
-        word.classList.remove('active');
+[contentContainer, titleContainer].forEach(container => {
+    container.addEventListener('dblclick', () => {
+        console.log('Double-click detected in container. Clearing all active highlights...');
+        document.querySelectorAll('.word.active').forEach(word => {
+            word.classList.remove('active');
+        });
     });
 });
+

@@ -8,6 +8,23 @@
   border: 1px solid #ccc;
 }
 
+#titleContainer h1 {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+body {
+  padding: 1rem;
+}
+
+#title {
+  font-size: 1.8em;
+  margin-bottom: 1rem;
+  font-weight: bold;
+}
+
 .word {
   display: inline-block;
   padding: 1px 1px;

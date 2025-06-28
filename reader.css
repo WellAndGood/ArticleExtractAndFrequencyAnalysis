@@ -8,15 +8,22 @@
   border: 1px solid #ccc;
 }
 
+#content p {
+    line-height: 2.2;       /* Increase line height */
+}
+
+
 #titleContainer h1 {
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
+
+    line-height: 2.0;
 }
 
 body {
-  padding: 1rem;
+  padding: 0.5rem;
 }
 
 #title {
@@ -26,16 +33,120 @@ body {
 }
 
 .word {
+  position: relative;  /* ✅ Necessary for absolute positioning inside */
   display: inline-block;
   padding: 1px 1px;
   margin: 0px;
   border-radius: 3px;
   transition: background-color 0.2s;
+  background-color: transparent;
+  line-height: 1.2;
+  overflow: visible;
+}
+
+.pos-badge {
+    position: absolute;
+    transform: none;        /* Remove previous translate offset */
+    font-size: 0.6em;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 0, 0, 0.8);
+    padding: 1px 3px;
+    border-radius: 3px;
+    pointer-events: none; 
+    line-height: 1;
+    font-family: monospace;
+    z-index: 2;
+}
+
+/* Default (Body content) */
+.body-word .pos-badge {
+    bottom: -6px;
+    right: -6px;
+}
+
+/* Tighter position for title words */
+.title-word .pos-badge {
+    bottom: -4px;
+    right: -4px;
 }
 
 .word:hover {
   background-color: rgba(0, 0, 0, 0.1);  /* Slight dark hover effect */
   cursor: pointer;
+}
+
+.custom-tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    line-height: 1.2;
+
+    max-width: 90vw;                    /* ✅ Prevent viewport overflow but allow long lines */
+    white-space: nowrap;                /* ✅ Force single-line unless viewport forces wrap */
+    overflow-wrap: normal;              /* ✅ Prevent internal word breaking */
+    text-overflow: ellipsis;            /* ✅ Optional: Add "..." when truncated (if desired) */
+
+    z-index: 10;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    pointer-events: none;
+
+    /* Default position to the right of the hovered word */
+    right: auto;
+    left: 100%;
+    top: 0;
+    transform: translateX(8px);
+
+    display: inline-block;
+    text-align: left;
+}
+.word.shift-left .custom-tooltip {
+    left: auto;
+    right: 100%;
+    transform: translateX(-8px);
+}
+
+/* .highlighted-word:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    line-height: 1.2;
+
+    max-width: 90vw;                    /* ✅ Prevent viewport overflow but allow long lines */
+    /* white-space: nowrap;                /* ✅ Force single-line unless viewport forces wrap */
+    /* overflow-wrap: normal;              ✅ Prevent internal word breaking
+    /* text-overflow: ellipsis;            /* ✅ Optional: Add "..." when truncated (if desired) */
+
+    /* z-index: 10;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    pointer-events: none; */
+
+    /* Default position to the right of the hovered word */
+    /* right: auto;
+    left: 100%;
+    top: 0;
+    transform: translateX(8px);
+
+    display: inline-block;
+    text-align: left;
+} */
+
+.word:hover {
+    position: relative;  /* Needed for absolute positioning of tooltip */
+}
+
+/* ✅ When "shift-left" class is added, flip tooltip to left */
+.word.shift-left:hover::after {
+    left: auto;
+    right: 100%;
+    transform: translateX(-8px);
 }
 
 .word.active {
@@ -46,19 +157,19 @@ body {
   position: relative;/* Light yellow for visibility */
 }
 
-.highlighted-word:hover::after {
+/* .highlighted-word:hover::after {
   content: attr(title);
   position: absolute;
   bottom: 120%;
   left: 0;
-  background-color: rgba(0, 0, 0, 0.8);  /* ✅ Add this line for dark tooltip background */
+  background-color: rgba(0, 0, 0, 0.8);  ✅ Add this line for dark tooltip background
   color: white;
   padding: 4px 8px;
   border-radius: 4px;
   white-space: nowrap;
-  z-index: 1;
+  z-index: 3;
   font-size: 12px;
-}
+} */
 
 .rank-tier-1 {
   background-color: #c8e6c9; /* Light green */

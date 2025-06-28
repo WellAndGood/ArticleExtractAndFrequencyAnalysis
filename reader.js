@@ -16,7 +16,27 @@ const posMap = {
     d: "Demonstrative / Determiner",  // this, that, what, all, etc.
     t: "To-infinitive marker",   // to (when before verb, e.g., "to go")
     r: "Adverb / Adverbial",     // so
+    n: "Noun",                   // dog, cat, house, etc.
+    m: "Number / Order",       // one, two, first, second, etc.
+    j: "Adjective",              // big, small, good, bad, etc.
+    u: "Interjection",           // oh, ah, wow, yes, etc.
     x: "Negation / Other",       // n't, not
+};
+
+const posBadgeIcons = {
+    a: "🔍",
+    v: "💪",
+    p: "👤",
+    c: "🔗",
+    i: "➡️",      // 🗺️ Or use a styled arrow icon later
+    d: "📍",
+    t: "♾️",
+    r: "🚀",
+    n: "🍎",
+    m: "1️⃣",
+    j: "🔥",
+    u: "❗",
+    x: "🚫"
 };
 
 // The main loader for words and rank
@@ -83,54 +103,87 @@ function generateSafeName(text) {
 
 function renderTextBlock(text, containerElement, wrapperTag = 'p') {
 
-        const sentences = splitIntoSentences(text);
-        sentences.forEach(sentence => {
+    const sentences = splitIntoSentences(text);
+    sentences.forEach(sentence => {
 
-            const block = document.createElement(wrapperTag);
-            const p = document.createElement('p');
-            sentence.trim().split(/\s+/).forEach(word => {
+        const block = document.createElement(wrapperTag);
+        const p = document.createElement('p');
+        sentence.trim().split(/\s+/).forEach(word => {
 
-                const cleanedWord = cleanWordForMatching(word);
-                const parts = getLemmaRankWithParts(cleanedWord);
+            const cleanedWord = cleanWordForMatching(word);
+            const parts = getLemmaRankWithParts(cleanedWord);
 
-                if (parts) {
-                    parts.forEach(part => {
-                        const wordDiv = document.createElement('div');
-                        wordDiv.classList.add('word');
-                        wordDiv.setAttribute('data-name', generateSafeName(part.text));
-                        wordDiv.setAttribute('data-index', wordIndex++);
+            if (parts) {
+                parts.forEach(part => {
+                    const wordDiv = document.createElement('div');
+                    wordDiv.classList.add('word');
+                    wordDiv.setAttribute('data-name', generateSafeName(part.text));
+                    wordDiv.setAttribute('data-index', wordIndex++);
 
-                        if (part.rank !== 9999) {
-                            wordDiv.classList.add('highlighted-word');
-                            wordDiv.classList.add(getRankColorClass(part.rank));
-                            const posFull = posMap[part.pos] || "Unknown POS";
+                    if (part.rank !== 9999) {
+                        wordDiv.classList.add('highlighted-word');
+                        wordDiv.classList.add(getRankColorClass(part.rank));
+                        const posFull = posMap[part.pos] || "Unknown POS";
 
-                            wordDiv.setAttribute('title', `Rank: ${part.rank}, Lemma: ${part.lemma}, Part of Speech: ${posFull}`);
-                        }
+                        wordDiv.addEventListener('mouseenter', () => {
+                            const tooltip = document.createElement('div');
+                            tooltip.className = 'custom-tooltip';
+                            tooltip.innerHTML = `
+                                <strong>Rank:</strong> ${part.rank} - <strong>Lemma:</strong> ${part.lemma}</br>
+                                <strong>Part of Speech:</strong> ${posFull}`;
+                            wordDiv.appendChild(tooltip);
+                        });
+
+                        wordDiv.addEventListener('mouseleave', () => {
+                            const existingTooltip = wordDiv.querySelector('.custom-tooltip');
+                            if (existingTooltip) existingTooltip.remove();
+                        });
+
+                        // wordDiv.setAttribute('data-tooltip', `Rank: ${part.rank}, Lemma: ${part.lemma}, Part of Speech: ${posFull}`);
 
                         wordDiv.textContent = part.text;
 
-                        wordDiv.addEventListener('click', () => {
-                            wordDiv.classList.toggle('active');
-                        });
+                        const posBadge = document.createElement('div');
+                        posBadge.classList.add('pos-badge');
+                        posBadge.textContent = posBadgeIcons[part.pos] || "?";;  // This will replace the single letter like "v", "n", etc.
+                        console.log("Part of speech for word:", part.text, "is", part.pos, "with full name:", posFull);
+                        wordDiv.appendChild(posBadge);
+                    } else {
+                        wordDiv.textContent = part.text;
+                    }
 
-                        block.appendChild(wordDiv);
-                        block.appendChild(document.createTextNode(' '));
+                    // After appending wordDiv to the container:
+                    setTimeout(() => {
+                        const rect = wordDiv.getBoundingClientRect();
+                        const tooltipWidth = 300;  // Approximate max width of tooltip (same as in CSS)
+                        const viewportRight = window.innerWidth;
+
+                        if (rect.right + tooltipWidth + 20 > viewportRight) {  // Add small buffer
+                            wordDiv.classList.add('shift-left');
+                        }
+                    }, 0);
+
+                    wordDiv.addEventListener('click', () => {
+                        wordDiv.classList.toggle('active');
                     });
-                } else {
-                    // Word totally not found → still render the original word as-is
-                    const wordDiv = document.createElement('div');
-                    wordDiv.classList.add('word');
-                    wordDiv.setAttribute('data-name', generateSafeName(word));
-                    wordDiv.setAttribute('data-index', wordIndex++);
-                    wordDiv.textContent = word;
 
                     block.appendChild(wordDiv);
                     block.appendChild(document.createTextNode(' '));
-                }
-            });
-            containerElement.appendChild(block);
+                });
+            } else {
+                // Word totally not found → still render the original word as-is
+                const wordDiv = document.createElement('div');
+                wordDiv.classList.add('word');
+                wordDiv.setAttribute('data-name', generateSafeName(word));
+                wordDiv.setAttribute('data-index', wordIndex++);
+                wordDiv.textContent = word;
+
+                block.appendChild(wordDiv);
+                block.appendChild(document.createTextNode(' '));
+            }
         });
+        containerElement.appendChild(block);
+    });
     chrome.storage.local.remove(['exportedArticle', 'exportedTitle']);
 }
 
@@ -249,7 +302,6 @@ function getLemmaRankWithParts(word) {
 [contentContainer, titleContainer].forEach(container => {
     container.addEventListener('mousedown', (e) => {
         const wordDiv = e.target.closest('.word');
-        console.log("mousedown on wordDiv", wordDiv);
         if (wordDiv) {
             isDragging = true;
             dragStartWord = wordDiv;

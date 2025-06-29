@@ -146,7 +146,6 @@ function renderTextBlock(text, containerElement, wrapperTag = 'p') {
                         const posBadge = document.createElement('div');
                         posBadge.classList.add('pos-badge');
                         posBadge.textContent = posBadgeIcons[part.pos] || "?";;  // This will replace the single letter like "v", "n", etc.
-                        console.log("Part of speech for word:", part.text, "is", part.pos, "with full name:", posFull);
                         wordDiv.appendChild(posBadge);
                     } else {
                         wordDiv.textContent = part.text;

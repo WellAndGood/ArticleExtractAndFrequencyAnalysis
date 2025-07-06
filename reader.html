@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
   <title>Reader View</title>
+
   <head>
     <link rel="stylesheet" href="reader.css">
   </head>
@@ -15,9 +17,28 @@
     }
   </style>
 </head>
+
 <body>
+  <div id="sidePanel">
+    <h3>Top 15 Words</h3>
+    <table id="topWordsTable">
+      <thead>
+        <tr>
+          <th>Word</th>
+          <th>Freq. Rank</th>
+          <th>Count</th>
+          <th>Lemma</th>
+        </tr>
+      </thead>
+      <tbody id="topWordsList">
+        <!-- Rows will be dynamically injected here -->
+      </tbody>
+    </table>
+  </div>
+  <button id="togglePanelBtn">Show Panel</button>
   <div id="titleContainer" class="word-container title-container"></div>
   <div id="content" class="word-container content-container"></div>
   <script src="reader.js"></script>
 </body>
+
 </html>

@@ -2,6 +2,7 @@ let wordIndex = 0;  // Global counter across all sentences
 let wordList = [];
 let contractionSuffixes = [];
 let hyphenatedWords = [];
+let currentlySelectedLemma = null;
 
 const titleContainer = document.getElementById('titleContainer');
 const contentContainer = document.getElementById('content');
@@ -119,6 +120,7 @@ function renderTextBlock(text, containerElement, wrapperTag = 'p') {
                     wordDiv.classList.add('word');
                     wordDiv.setAttribute('data-name', generateSafeName(part.text));
                     wordDiv.setAttribute('data-index', wordIndex++);
+                    wordDiv.setAttribute('data-lemma', part.lemma);
 
                     if (part.rank !== 9999) {
                         wordDiv.classList.add('highlighted-word');
@@ -138,9 +140,6 @@ function renderTextBlock(text, containerElement, wrapperTag = 'p') {
                             const existingTooltip = wordDiv.querySelector('.custom-tooltip');
                             if (existingTooltip) existingTooltip.remove();
                         });
-
-                        // wordDiv.setAttribute('data-tooltip', `Rank: ${part.rank}, Lemma: ${part.lemma}, Part of Speech: ${posFull}`);
-
                         wordDiv.textContent = part.text;
 
                         const posBadge = document.createElement('div');
@@ -183,7 +182,109 @@ function renderTextBlock(text, containerElement, wrapperTag = 'p') {
         });
         containerElement.appendChild(block);
     });
+
+    if (wrapperTag === 'p') {
+        buildTop15WordList(text);
+    }
+
     chrome.storage.local.remove(['exportedArticle', 'exportedTitle']);
+}
+
+function buildTop15WordList(articleText) {
+    const wordFrequency = {};
+
+    const words = articleText.split(/\s+/).map(w => cleanWordForMatching(w?.toLowerCase()));
+
+    words.forEach(word => {
+        const entry = wordList.find(e => e.word?.toLowerCase() === word);
+        if (entry) {
+            const lemma = entry.lemma;
+            if (!wordFrequency[lemma]) {
+                wordFrequency[lemma] = {
+                    lemma: lemma,
+                    lemRank: parseInt(entry.lemRank),
+                    count: 0,
+                    word: entry.word
+                };
+            }
+            wordFrequency[lemma].count++;
+        }
+    });
+
+    // Sort by lemma rank ascending (high priority first), then by count descending
+    const sorted = Object.values(wordFrequency)
+        .sort((a, b) => a.lemRank - b.lemRank || b.count - a.count)
+        .slice(0, 15);
+
+    const tableBody = document.getElementById('topWordsList');
+    tableBody.innerHTML = '';
+
+    sorted.forEach(item => {
+        const row = document.createElement('tr');
+
+        row.innerHTML = `
+            <td>${item.word}</td>
+            <td>${item.lemRank}</td>
+            <td>${item.count}</td>
+            <td>${item.lemma}</td>
+        `;
+
+        tableBody.appendChild(row);
+
+        row.addEventListener('click', () => handleRowClick(item.lemma, row));
+    });
+}
+
+function handleRowClick(lemma, clickedRow) {
+    const allRows = document.querySelectorAll('#topWordsTable tr');
+    const allWords = document.querySelectorAll('.word');
+
+    const isAlreadySelected = clickedRow.classList.contains('selected');
+
+    if (isAlreadySelected) {
+        // ✅ Deselect this row and its words
+        clickedRow.classList.remove('selected');
+        allWords.forEach(wordDiv => {
+            if (wordDiv.getAttribute('data-lemma') === lemma) {
+                wordDiv.classList.remove('highlighted-from-table');
+            }
+        });
+    } else {
+        // ✅ Select this row and highlight words
+        clickedRow.classList.add('selected');
+        allWords.forEach(wordDiv => {
+            if (wordDiv.getAttribute('data-lemma') === lemma) {
+                wordDiv.classList.add('highlighted-from-table');
+            }
+        });
+    }
+
+
+
+    // // If clicking the same row again → deselect everything
+    // if (currentlySelectedLemma === lemma) {
+    //     allRows.forEach(r => r.classList.remove('selected'));
+    //     allWords.forEach(word => word.classList.remove('highlighted-from-table'));
+    //     currentlySelectedLemma = null;
+    //     return;
+    // }
+
+    // // Clear previous selection
+    // allRows.forEach(r => r.classList.remove('selected'));
+    // allWords.forEach(word => word.classList.remove('highlighted-from-table'));
+
+    // // Highlight this row
+    // clickedRow.classList.add('selected');
+
+    // // Highlight matching words in article
+    // allWords.forEach(wordDiv => {
+    //     const wordLemma = wordDiv.getAttribute('data-lemma');
+    //     if (wordLemma === lemma) {
+    //         wordDiv.classList.add('highlighted-from-table');
+    //     }
+    // });
+
+    // currentlySelectedLemma = lemma;
 }
 
 function getRankColorClass(rank) {
@@ -388,3 +489,10 @@ function toggleWordActive(pElement) {
     });
 });
 
+const sidePanel = document.getElementById('sidePanel');
+const togglePanelBtn = document.getElementById('togglePanelBtn');
+
+togglePanelBtn.addEventListener('click', () => {
+    sidePanel.classList.toggle('open');
+    togglePanelBtn.textContent = sidePanel.classList.contains('open') ? "Hide Panel" : "Show Panel";
+});

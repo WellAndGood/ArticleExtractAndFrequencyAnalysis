@@ -35,12 +35,28 @@
       </tbody>
     </table>
   </div>
+
   <div id="agentPanel">
-    <p>Agent Form Content</p>
+    <button id="closeAgentPanel">✖</button>
+    <h3>Register Proper Name</h3>
+    <input 
+      type="text" 
+      id="agentInput" 
+      style="width: 90%; padding: 5px; margin-top: 5px;" />
+    <div id="agentTypes"> 
+      <label><input type="radio" name="agentType" value="person"> Person</label>
+      <label><input type="radio" name="agentType" value="company"> Company/Org.</label>
+      <label><input type="radio" name="agentType" value="publication"> Publication</label>
+      <label><input type="radio" name="agentType" value="alias"> Alias (e.g., acronym, nickname)</label>
+      <label><input type="radio" name="agentType" value="location"> Location</label>
+    </div>
   </div>
-  <button id="togglePanelBtn">Show Panel</button>
-  <div id="titleContainer" class="word-container title-container"></div>
-  <div id="content" class="word-container content-container"></div>
+
+  <div id="mainContent">
+    <button id="togglePanelBtn">Show Panel</button>
+    <div id="titleContainer" class="word-container title-container"></div>
+    <div id="content" class="word-container content-container"></div>
+  </div>
   <script src="reader.js"></script>
 </body>
 

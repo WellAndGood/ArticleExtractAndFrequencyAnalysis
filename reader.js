@@ -376,7 +376,7 @@ function getLemmaRankWithParts(word) {
     return null;  // Total miss
 }
 
-
+// DRAG AND SELECT LOGIC FOR TEXT HIGHLIGHTING
 [contentContainer, titleContainer].forEach(container => {
     container.addEventListener('mousedown', (e) => {
         const wordDiv = e.target.closest('.word');
@@ -454,6 +454,45 @@ document.addEventListener('dblclick', () => {
     selectedIndexes.clear();
     [contentContainer, titleContainer].forEach(highlightSelectedWords);
 });
+ 
+
+// HANDLE DOUBLE A-A KEY TO OPEN AGENT PANEL
+let lastAKeyTime = 0;
+
+document.addEventListener('keydown', (e) => {
+    const now = Date.now();
+
+    if (e.key.toLowerCase() === 'a') {
+        if (now - lastAKeyTime < 1000) {
+            openAgentPanel();
+        }
+        lastAKeyTime = now;
+    }
+});
+
+function openAgentPanel() {
+    document.getElementById('agentPanel').classList.add('open');
+
+    const agentInput = document.getElementById('agentInput');
+    const selectedWords = getAllSelectedWords(contentContainer, titleContainer);
+    const properName = toTitleCase(selectedWords.join(' '));
+
+    agentInput.value = properName;
+    mainContent.style.marginRight = '250px';
+}
+
+document.getElementById('closeAgentPanel').addEventListener('click', () => {
+    document.getElementById('agentPanel').classList.remove('open');
+    mainContent.style.marginRight = '0';
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        document.getElementById('agentPanel').classList.remove('open');
+        mainContent.style.marginRight = '0';
+    }
+});
+
 
 // Highlight function
 function highlightSelectedWords(container) {
@@ -485,6 +524,13 @@ function getAllSelectedWords(...containers) {
     return allIndexes.map(w => w.name);
 }
 
+function toTitleCase(str) {
+    return str
+        .toLowerCase()
+        .split(/\s+/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
 
 function toggleWordActive(pElement) {
     if (!pElement.classList.contains('active')) {
@@ -507,5 +553,8 @@ const togglePanelBtn = document.getElementById('togglePanelBtn');
 
 togglePanelBtn.addEventListener('click', () => {
     sidePanel.classList.toggle('open');
+    const main = document.getElementById('mainContent');
     togglePanelBtn.textContent = sidePanel.classList.contains('open') ? "Hide Panel" : "Show Panel";
+
+    main.style.marginRight = sidePanel.classList.contains('open') ? '250px' : '0';
 });

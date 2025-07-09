@@ -43,7 +43,8 @@ h3 {
     unicode-bidi: isolate;
 }
 
-#sidePanel {
+#sidePanel,
+#agentPanel {
     position: fixed;
     top: 0;
     right: 0;
@@ -59,7 +60,8 @@ h3 {
     z-index: 20;
 }
 
-#sidePanel.open {
+#sidePanel.open,
+#agentPanel.open {
     transform: translateX(0);           /* Slide in when open */
 }
 

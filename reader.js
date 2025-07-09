@@ -3,6 +3,13 @@ let wordList = [];
 let contractionSuffixes = [];
 let hyphenatedWords = [];
 let currentlySelectedLemma = null;
+let low = 0;
+let high = 0;
+const selectedIndexes = new Set();
+let isDragAdding = true; // true = drag-to-select, false = drag-to-deselect
+let justDragged = false; // to prevent continuous dragging after mouse release
+let isDragging = false;
+let dragStartWord = null;
 
 const titleContainer = document.getElementById('titleContainer');
 const contentContainer = document.getElementById('content');
@@ -83,8 +90,8 @@ async function loadWordList() {
         .filter(entry => entry.word && entry.word?.includes('-'))
         .map(entry => entry.word?.toLowerCase());
 
-    console.log("Loaded", contractionSuffixes, "contraction suffixes.");
-    console.log("Loaded", hyphenatedWords, "hyphenated words.");
+    // console.log("Loaded", contractionSuffixes, "contraction suffixes.");
+    // console.log("Loaded", hyphenatedWords, "hyphenated words.");
 }
 
 function normalizeApostrophes(text) {
@@ -258,33 +265,6 @@ function handleRowClick(lemma, clickedRow) {
             }
         });
     }
-
-
-
-    // // If clicking the same row again → deselect everything
-    // if (currentlySelectedLemma === lemma) {
-    //     allRows.forEach(r => r.classList.remove('selected'));
-    //     allWords.forEach(word => word.classList.remove('highlighted-from-table'));
-    //     currentlySelectedLemma = null;
-    //     return;
-    // }
-
-    // // Clear previous selection
-    // allRows.forEach(r => r.classList.remove('selected'));
-    // allWords.forEach(word => word.classList.remove('highlighted-from-table'));
-
-    // // Highlight this row
-    // clickedRow.classList.add('selected');
-
-    // // Highlight matching words in article
-    // allWords.forEach(wordDiv => {
-    //     const wordLemma = wordDiv.getAttribute('data-lemma');
-    //     if (wordLemma === lemma) {
-    //         wordDiv.classList.add('highlighted-from-table');
-    //     }
-    // });
-
-    // currentlySelectedLemma = lemma;
 }
 
 function getRankColorClass(rank) {
@@ -304,10 +284,8 @@ function cleanWordForMatching(word) {
 let previousLowIndex = null;
 let previousHighIndex = null;
 
-let dragStartWord = null;
-let dragEndWord = null;
 
-let isDragging = false;
+let dragEndWord = null;
 
 function clearAllHighlights() {
     allContainers.forEach(container => {
@@ -361,7 +339,7 @@ function getLemmaRankWithParts(word) {
             const suffixEntry = getWordEntry(suffix);
 
             if (baseEntry && suffixEntry) {
-                console.log(`Contraction fallback: "${word}" → "${base}" + "${suffixPart}"`);
+                // console.log(`Contraction fallback: "${word}" → "${base}" + "${suffixPart}"`);
                 return [
                     {
                         text: base,
@@ -386,7 +364,7 @@ function getLemmaRankWithParts(word) {
         const partEntries = parts.map(part => getWordEntry(part));
 
         if (partEntries.every(e => e)) {
-            console.log(`Hyphen fallback: "${word}" → Parts:`, parts);
+            // console.log(`Hyphen fallback: "${word}" → Parts:`, parts);
             return parts.map((part, idx) => ({
                 text: part,
                 rank: parseInt(partEntries[idx].lemRank),
@@ -402,77 +380,111 @@ function getLemmaRankWithParts(word) {
 [contentContainer, titleContainer].forEach(container => {
     container.addEventListener('mousedown', (e) => {
         const wordDiv = e.target.closest('.word');
-        if (wordDiv) {
-            isDragging = true;
-            dragStartWord = wordDiv;
-            previousLowIndex = null;
-            previousHighIndex = null;
-        }
+        if (!wordDiv) return;
+
+        isDragging = true;
+        dragStartWord = wordDiv;
+        justDragged = false;
+
+        const index = wordDiv.getAttribute('data-index');
+        const isAlreadySelected = selectedIndexes.has(index);
+
+        // Toggle if it's just a click & release
+        wordDiv.dataset._toggleOnMouseUp = isAlreadySelected ? 'deselect' : 'select';
+
+        e.preventDefault(); // prevent browser text selection
     });
 
     container.addEventListener('mousemove', (e) => {
-        if (isDragging) {
-            const wordDiv = e.target.closest('.word');
-            if (wordDiv) {
-                const newEndIndex = parseInt(wordDiv.getAttribute('data-index'));
-                if (previousLowIndex !== null && previousHighIndex !== null) {
-                    clearRange(container, previousLowIndex, previousHighIndex);
-                }
+        if (!isDragging || !dragStartWord) return;
 
-                const startIndex = parseInt(dragStartWord.getAttribute('data-index'));
-                const low = Math.min(startIndex, newEndIndex);
-                const high = Math.max(startIndex, newEndIndex);
+        justDragged = true;
 
-                console.log("high", high);
+        const wordDiv = e.target.closest('.word');
+        if (!wordDiv) return;
 
-                highlightRange(container, low, high);
+        const startIndex = parseInt(dragStartWord.getAttribute('data-index'));
+        const currentIndex = parseInt(wordDiv.getAttribute('data-index'));
 
-                previousLowIndex = low;
-                previousHighIndex = high;
+        const low = Math.min(startIndex, currentIndex);
+        const high = Math.max(startIndex, currentIndex);
+
+        for (let i = low; i <= high; i++) {
+            const word = container.querySelector(`.word[data-index="${i}"]`);
+            if (word) {
+                selectedIndexes.add(word.getAttribute('data-index'));
             }
         }
+
+        highlightSelectedWords(container);
+    });
+
+    container.addEventListener('click', (e) => {
+        const wordDiv = e.target.closest('.word');
+        if (!wordDiv) return;
+
+        if (justDragged) {
+            justDragged = false;
+            return; // skip single click if it was a drag
+        }
+
+        const index = wordDiv.getAttribute('data-index');
+        const action = wordDiv.dataset._toggleOnMouseUp;
+
+        if (action === 'select') {
+            selectedIndexes.add(index);
+        } else if (action === 'deselect') {
+            selectedIndexes.delete(index);
+        }
+
+        highlightSelectedWords(container);
     });
 });
 
-function highlightRange(container, low, high) {
-    allContainers.forEach(container => {
-        container.querySelectorAll('.word').forEach(word => {
-            const index = parseInt(word.getAttribute('data-index'));
-            if (index >= low && index <= high) {
-                word.classList.add('active');
-            }
-        });
-    });
-}
-
-function clearRange(container, low, high) {
-    allContainers.forEach(container => {
-        container.querySelectorAll('.word').forEach(word => {
-            const index = parseInt(word.getAttribute('data-index'));
-            if (index >= low && index <= high) {
-                word.classList.remove('active');
-            }
-        });
-    });
-}
-
+// Mouse up — end drag
 document.addEventListener('mouseup', () => {
     isDragging = false;
     dragStartWord = null;
-    dragEndWord = null;
+    const allSelected = getAllSelectedWords(contentContainer, titleContainer);
+    console.log(allSelected.join(' '));
 });
 
-// function highlightRange(start, end) {
-//     const low = Math.min(start, end);
-//     const high = Math.max(start, end);
+// Double-click — clear all
+document.addEventListener('dblclick', () => {
+    selectedIndexes.clear();
+    [contentContainer, titleContainer].forEach(highlightSelectedWords);
+});
 
-//     container.querySelectorAll('.word').forEach(word => {
-//         const index = parseInt(word.getAttribute('data-index'));
-//         if (index >= low && index <= high) {
-//             word.classList.add('active');
-//         }
-//     });
-// }
+// Highlight function
+function highlightSelectedWords(container) {
+    container.querySelectorAll('.word').forEach(word => {
+        const index = word.getAttribute('data-index');
+        if (selectedIndexes.has(index)) {
+            word.classList.add('active');
+        } else {
+            word.classList.remove('active');
+        }
+    });
+}
+
+function getAllSelectedWords(...containers) {
+    
+    const allIndexes = [];
+
+    containers.forEach(container => {
+        container.querySelectorAll('.word').forEach(word => {
+            const index = parseInt(word.getAttribute('data-index'));
+            if (selectedIndexes.has(word.getAttribute('data-index'))) {
+                allIndexes.push({ index, name: word.getAttribute('data-name') });
+            }
+        });
+    });
+
+    allIndexes.sort((a, b) => a.index - b.index);
+
+    return allIndexes.map(w => w.name);
+}
+
 
 function toggleWordActive(pElement) {
     if (!pElement.classList.contains('active')) {
@@ -486,6 +498,7 @@ function toggleWordActive(pElement) {
         document.querySelectorAll('.word.active').forEach(word => {
             word.classList.remove('active');
         });
+        selectedIndexes.clear();
     });
 });
 

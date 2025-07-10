@@ -50,6 +50,12 @@
       <label><input type="radio" name="agentType" value="alias"> Alias (e.g., acronym, nickname)</label>
       <label><input type="radio" name="agentType" value="location"> Location</label>
     </div>
+    <div id="aliasForContainer" style="display:none; margin-top:10px;">
+      <input type="text" id="aliasForInput" placeholder="Alias for..." autocomplete="off" />
+      <ul id="suggestions" class="suggestions"></ul>
+    </div>
+
+    <button id="registerAgentBtn">Submit Info</button>
   </div>
 
   <div id="mainContent">
@@ -57,7 +63,7 @@
     <div id="titleContainer" class="word-container title-container"></div>
     <div id="content" class="word-container content-container"></div>
   </div>
-  <script src="reader.js"></script>
+  <script type="module" src="reader.js"></script>
 </body>
 
 </html>

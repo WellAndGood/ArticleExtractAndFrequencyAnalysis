@@ -1,3 +1,5 @@
+import { openDB, searchAgentsByName } from './databasehelpers.js';
+
 let wordIndex = 0;  // Global counter across all sentences
 let wordList = [];
 let contractionSuffixes = [];
@@ -284,16 +286,7 @@ function cleanWordForMatching(word) {
 let previousLowIndex = null;
 let previousHighIndex = null;
 
-
 let dragEndWord = null;
-
-function clearAllHighlights() {
-    allContainers.forEach(container => {
-        container.querySelectorAll('.word.active').forEach(word => {
-            word.classList.remove('active');
-        });
-    });
-}
 
 function getLemmaRankForWord(word) {
     if (!wordList || wordList.length === 0) return 9999;  // Defensive check in case wordList hasn't loaded yet
@@ -558,3 +551,102 @@ togglePanelBtn.addEventListener('click', () => {
 
     main.style.marginRight = sidePanel.classList.contains('open') ? '250px' : '0';
 });
+
+const aliasForContainer = document.getElementById('aliasForContainer');
+const aliasForInput = document.getElementById('aliasForInput');
+const suggestions = document.getElementById('suggestions');
+let aliasOfId = null;
+
+// CLICK OF AGENT REGISTRATION BUTTON
+document.getElementById('registerAgentBtn').addEventListener('click', async () => {
+  const name = document.getElementById('agentInput').value.trim();
+  const type = document.querySelector('input[name="agentType"]:checked')?.value;
+
+  // The ID of the alias being created
+  aliasOfId = null;
+  if (type === 'alias') {
+    aliasOfId = parseInt(document.getElementById('aliasForInput').dataset.aliasOfId, 10);
+    if (!aliasOfId || isNaN(aliasOfId)) {
+        alert("Please select a valid target for alias.");
+        return;
+    }
+  }
+
+  if (!name || !type) {
+    alert("Please enter a name.");
+    return;
+  }
+
+  if (type === 'alias' && (!aliasOfId || isNaN(aliasOfId))) {
+    alert("Please select a valid target for alias.");
+    return;
+    }
+
+  const agent = {
+    name,
+    type,
+    aliasOf: type === 'alias' ? aliasOfId : null
+  };
+
+  await saveAgent(agent);
+
+  alert("Agent saved!");
+  document.getElementById('agentInput').value = '';
+  aliasForInput.value = '';
+  aliasForInput.dataset.aliasOfId = '';
+  aliasOfId = null;
+  suggestions.innerHTML = '';
+  aliasForContainer.style.display = 'none';
+  document.querySelectorAll('input[name="agentType"]').forEach(r => r.checked = false);
+});
+
+// Show/hide alias input
+document.querySelectorAll('input[name="agentType"]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    if (radio.value === 'alias' && radio.checked) {
+      aliasForContainer.style.display = 'block';
+    } else if (radio.checked) {
+      aliasForContainer.style.display = 'none';
+      aliasForInput.value = '';
+      aliasForInput.dataset.aliasOfId = '';
+      aliasOfId = null;
+      suggestions.innerHTML = '';
+    }
+  });
+});
+
+async function saveAgent(agent) {
+  const db = await openDB();
+  const tx = db.transaction("agents", "readwrite");
+  const store = tx.objectStore("agents");
+
+  store.add(agent);
+
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+document.getElementById('aliasForInput').addEventListener('keyup', async (e) => {
+  const query = e.target.value.trim();
+  if (!query) return;
+
+  const results = await searchAgentsByName(query);
+
+  const suggestions = document.getElementById('suggestions');
+  suggestions.innerHTML = '';
+  results.forEach(agent => {
+    const li = document.createElement('li');
+    li.textContent = `${agent.name} (${agent.type})`;
+    li.addEventListener('click', () => {
+      e.target.value = agent.name;
+      suggestions.innerHTML = '';
+      e.target.dataset.aliasOfId = agent.id; // store the id for saving later
+    });
+    suggestions.appendChild(li);
+  });
+});
+
+
+

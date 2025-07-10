@@ -30,6 +30,33 @@ body {
   overflow-x: hidden;
 }
 
+button {
+  background-color: #b9d5ff; /* Light blue */
+}
+
+button:hover {
+  background-color: #5d99ff; /* Darker blue on hover */
+  transition: background-color 0.25s ease;
+}
+
+.suggestions {
+    border: 1px solid #ccc;
+    max-height: 150px;
+    overflow-y: auto;
+    margin-top: 2px;
+    background: #fff;
+  }
+
+.suggestions li {
+  list-style: none;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.suggestions li:hover {
+  background: #eee;
+}
+
 #title {
   font-size: 1.8em;
   margin-bottom: 1rem;
@@ -67,6 +94,7 @@ h3 {
     transform: translateX(100%);        /* Hidden by default (offscreen to the right) */
     transition: transform 0.3s ease;
     z-index: 20;
+    line-height: 1.0;
 }
 
 #sidePanel.open,

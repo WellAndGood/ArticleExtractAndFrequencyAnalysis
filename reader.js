@@ -1,6 +1,7 @@
-import { openDB, searchAgentsByName } from './databasehelpers.js';
+import { openDB, searchAgentsByName, countExactAgent } from './databasehelpers.js';
 
 let wordIndex = 0;  // Global counter across all sentences
+let adjacencyWordIndex = 0;  // Global counter across all sentences
 let wordList = [];
 let contractionSuffixes = [];
 let hyphenatedWords = [];
@@ -12,6 +13,7 @@ let isDragAdding = true; // true = drag-to-select, false = drag-to-deselect
 let justDragged = false; // to prevent continuous dragging after mouse release
 let isDragging = false;
 let dragStartWord = null;
+const adjacencyList = [];
 
 const titleContainer = document.getElementById('titleContainer');
 const contentContainer = document.getElementById('content');
@@ -72,6 +74,9 @@ function loadAndRenderArticle() {
 
         // ✅ Render article body
         renderTextBlock(articleText, contentContainer);
+
+        console.log(adjacencyList);
+        console.log(adjacencyList.length, "words rendered in total.");
     });
     chrome.storage.local.remove(['exportedArticle', 'exportedTitle']);
 }
@@ -127,9 +132,16 @@ function renderTextBlock(text, containerElement, wrapperTag = 'p') {
                 parts.forEach(part => {
                     const wordDiv = document.createElement('div');
                     wordDiv.classList.add('word');
-                    wordDiv.setAttribute('data-name', generateSafeName(part.text));
+                    const safeWord = generateSafeName(part.text)
+                    wordDiv.setAttribute('data-name', safeWord);
                     wordDiv.setAttribute('data-index', wordIndex++);
                     wordDiv.setAttribute('data-lemma', part.lemma);
+
+                    adjacencyList.push({
+                        index: wordIndex,
+                        text: safeWord,
+                        element: wordDiv
+                    });
 
                     if (part.rank !== 9999) {
                         wordDiv.classList.add('highlighted-word');
@@ -181,9 +193,16 @@ function renderTextBlock(text, containerElement, wrapperTag = 'p') {
                 // Word totally not found → still render the original word as-is
                 const wordDiv = document.createElement('div');
                 wordDiv.classList.add('word');
-                wordDiv.setAttribute('data-name', generateSafeName(word));
+                const safeWord = generateSafeName(word)
+                wordDiv.setAttribute('data-name', safeWord);
                 wordDiv.setAttribute('data-index', wordIndex++);
                 wordDiv.textContent = word;
+
+                adjacencyList.push({
+                    index: wordIndex,
+                    text: safeWord,
+                    element: wordDiv
+                });
 
                 block.appendChild(wordDiv);
                 block.appendChild(document.createTextNode(' '));
@@ -197,6 +216,11 @@ function renderTextBlock(text, containerElement, wrapperTag = 'p') {
     }
 
     chrome.storage.local.remove(['exportedArticle', 'exportedTitle']);
+}
+
+
+function markAgentProminent(element) {
+  element.classList.add('prominent-agent');
 }
 
 function buildTop15WordList(articleText) {
@@ -592,6 +616,7 @@ document.getElementById('registerAgentBtn').addEventListener('click', async () =
 
   alert("Agent saved!");
   document.getElementById('agentInput').value = '';
+  document.getElementById('matchStatus').value = '';
   aliasForInput.value = '';
   aliasForInput.dataset.aliasOfId = '';
   aliasOfId = null;
@@ -648,5 +673,33 @@ document.getElementById('aliasForInput').addEventListener('keyup', async (e) => 
   });
 });
 
+const nameInput = document.getElementById('agentInput');
+const typeRadios = document.querySelectorAll('input[name="agentType"]');
+const matchStatus = document.getElementById('matchStatus'); // a small div or span to show the count
 
+// WHILE TYPING IN AGENT REGISTRATION INPUT - MATCH COUNT TO PREVENT DUPLICATES
+async function checkForExactMatch() {
+  const name = nameInput.value.trim();
+  const type = document.querySelector('input[name="agentType"]:checked')?.value;
+
+  if (!name || !type) {
+    matchStatus.textContent = '';
+    return;
+  }
+
+  const count = await countExactAgent(name, type);
+  if (count === 0) {
+    matchStatus.textContent = '✅ No existing agents with this name and type.';
+  } else {
+    matchStatus.textContent = `⚠️ ${count} existing agent(s) already match this name and type.`;
+  }
+}
+
+// check when typing the name
+nameInput.addEventListener('keyup', checkForExactMatch);
+
+// check when changing type
+typeRadios.forEach(radio => {
+  radio.addEventListener('change', checkForExactMatch);
+});
 

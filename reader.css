@@ -281,3 +281,10 @@ h3 {
 .rank-tier-default {
   background-color: #e0e0e0; /* Light gray (fallback) */
 }
+
+.prominent-agent {
+  background-color: crimson;
+  color: white; /* better contrast */
+  border: 2px solid darkred;
+  box-shadow: 0 0 4px rgba(0,0,0,0.2);
+}

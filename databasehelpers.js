@@ -40,3 +40,51 @@ export async function searchAgentsByName(query) {
     };
   });
 }
+
+export async function countExactAgent(name, type) {
+  const db = await openDB();
+  const tx = db.transaction("agents", "readonly");
+  const store = tx.objectStore("agents");
+
+  return new Promise((resolve) => {
+    let count = 0;
+    const request = store.openCursor();
+
+    request.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (cursor) {
+        const agent = cursor.value;
+        if (
+          agent.name.trim().toLowerCase() === name.trim().toLowerCase() &&
+          agent.type === type
+        ) {
+          count++;
+        }
+        cursor.continue();
+      } else {
+        resolve(count);
+      }
+    };
+  });
+}
+
+async function getAllAgents() {
+  const db = await openDB();
+  const tx = db.transaction("agents", "readonly");
+  const store = tx.objectStore("agents");
+
+  return new Promise((resolve, reject) => {
+    const agents = [];
+    const req = store.openCursor();
+    req.onsuccess = e => {
+      const cursor = e.target.result;
+      if (cursor) {
+        agents.push(cursor.value);
+        cursor.continue();
+      } else {
+        resolve(agents);
+      }
+    };
+    req.onerror = () => reject(req.error);
+  });
+}

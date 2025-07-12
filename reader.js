@@ -1,4 +1,5 @@
-import { openDB, searchAgentsByName, countExactAgent } from './databasehelpers.js';
+import { openDB, searchAgentsByName, countExactAgent, getAllAgents } from './databasehelpers.js';
+import { numberToWords, markSpelledOutNumbers, numberWords, isHyphenatedNumber } from './helpers.js';
 
 let wordIndex = 0;  // Global counter across all sentences
 let adjacencyWordIndex = 0;  // Global counter across all sentences
@@ -14,6 +15,9 @@ let justDragged = false; // to prevent continuous dragging after mouse release
 let isDragging = false;
 let dragStartWord = null;
 const adjacencyList = [];
+const lemmaSet = new Set();
+let top5000Lemmas;
+
 
 const titleContainer = document.getElementById('titleContainer');
 const contentContainer = document.getElementById('content');
@@ -60,8 +64,8 @@ async function initReaderPage() {
 
 initReaderPage();
 
-function loadAndRenderArticle() {
-    chrome.storage.local.get(['exportedArticle', 'exportedTitle'], (result) => {
+async function loadAndRenderArticle() {
+    chrome.storage.local.get(['exportedArticle', 'exportedTitle'], async (result) => {
         const articleText = result.exportedArticle || "No article found.";
         const articleTitle = result.exportedTitle || "Untitled Article";
 
@@ -73,7 +77,13 @@ function loadAndRenderArticle() {
         renderTextBlock(articleTitle, titleContainer, 'h1');
 
         // ✅ Render article body
-        renderTextBlock(articleText, contentContainer);
+        renderTextBlock(articleText, contentContainer, 'p');
+
+        await markAgentsInAdjacencyList(adjacencyList);
+        markProminentNumbers(adjacencyList);
+        attachNumberTooltips(adjacencyList);
+        markSpelledOutNumbers(adjacencyList);
+        attachNumberHover(adjacencyList);
 
         console.log(adjacencyList);
         console.log(adjacencyList.length, "words rendered in total.");
@@ -87,7 +97,15 @@ async function loadWordList() {
     const response = await fetch(url);
     const json = await response.json();
     wordList = json.wordForms;
+    const wordForms  = json.wordForms;
+    
     console.log("Loaded", wordList.length, "word forms.");
+
+    wordForms.forEach(entry => {
+        if (entry.lemma) {
+            lemmaSet.add(entry.lemma.toLowerCase());
+        }
+    });
 
     contractionSuffixes = wordList
         .filter(entry => entry.word && entry.word?.startsWith("'"))
@@ -97,6 +115,8 @@ async function loadWordList() {
         .filter(entry => entry.word && entry.word?.includes('-'))
         .map(entry => entry.word?.toLowerCase());
 
+
+    top5000Lemmas = lemmaSet;
     // console.log("Loaded", contractionSuffixes, "contraction suffixes.");
     // console.log("Loaded", hyphenatedWords, "hyphenated words.");
 }
@@ -216,6 +236,219 @@ function renderTextBlock(text, containerElement, wrapperTag = 'p') {
     }
 
     chrome.storage.local.remove(['exportedArticle', 'exportedTitle']);
+}
+
+async function markAgentsInAdjacencyList(adjacencyList) {
+  const agents = await getAllAgents();
+
+  const agentsById = new Map(agents.map(a => [a.id, a]));
+
+  const agentsByWords = agents.map(agent => ({
+    ...agent,
+    words: agent.name.toLowerCase().split(/\s+/)
+  }));
+
+  for (const agent of agentsByWords) {
+    const agentLen = agent.words.length;
+
+    // Skip single-word company if needed
+    if (agentLen === 1 && agent.type === 'company') {
+        if (top5000Lemmas.has(agent.words[0])) {
+            continue
+        }
+    }
+
+    for (let i = 0; i <= adjacencyList.length - agentLen; i++) {
+      const slice = adjacencyList.slice(i, i + agentLen);
+
+      const match = slice.every((token, idx) => {
+        return token.text.toLowerCase() === agent.words[idx];
+      });
+
+      if (match) {
+        slice.forEach(token => {
+          token.element.classList.add('prominent-agent');
+          token.element.dataset.agentId = agent.id;
+        });
+        // optionally skip ahead to avoid overlapping matches:
+        i += agentLen - 1;
+      }
+    }
+  }
+  attachAgentTooltips(adjacencyList, agentsById);
+}
+
+function attachAgentTooltips(adjacencyList, agentsById) {
+  const tooltip = document.createElement('div');
+  tooltip.className = 'agent-tooltip';
+  tooltip.style.position = 'absolute';
+  tooltip.style.background = '#222';
+  tooltip.style.color = '#fff';
+  tooltip.style.padding = '2px 6px';
+  tooltip.style.fontSize = '0.8em';
+  tooltip.style.borderRadius = '4px';
+  tooltip.style.pointerEvents = 'none';
+  tooltip.style.display = 'none';
+  tooltip.style.zIndex = '9999';
+  document.body.appendChild(tooltip);
+
+  adjacencyList.forEach(token => {
+    if (!token.element.classList.contains('prominent-agent')) return;
+
+    token.element.addEventListener('mouseenter', () => {
+      const agentId = parseInt(token.element.dataset.agentId, 10);
+      const agent = agentsById.get(agentId);
+
+      let nameToShow = agent.name;
+
+      if (agent.type === 'alias' && agent.aliasOf) {
+        const original = agentsById.get(agent.aliasOf);
+        if (original) {
+          nameToShow = `${agent.name} → ${original.name}`;
+        }
+      }
+
+      tooltip.textContent = nameToShow;
+
+      const rect = token.element.getBoundingClientRect();
+      tooltip.style.left = `${rect.left + window.scrollX}px`;
+      tooltip.style.top = `${rect.top + window.scrollY - 24}px`;
+      tooltip.style.display = 'block';
+    });
+
+    token.element.addEventListener('mouseleave', () => {
+      tooltip.style.display = 'none';
+    });
+  });
+}
+
+function markProminentNumbers(adjacencyList) {
+  for (let i = 0; i < adjacencyList.length; i++) {
+    const numberParts = [];
+    let j = i;
+
+    while (j < adjacencyList.length) {
+      const current = adjacencyList[j];
+
+      // Check if it looks like a number
+      if (/^\d+$/.test(current.text)) {
+        numberParts.push(current);
+        j++;
+      } else {
+        break; // stop as soon as non-number found
+      }
+    }
+
+    if (numberParts.length > 0) {
+      numberParts.forEach(part => {
+        part.element.classList.add('prominent-number');
+      });
+      i = j - 1; // skip ahead to end of sequence
+    }
+  }
+}
+
+function attachNumberTooltips(adjacencyList) {
+  const tooltip = document.createElement('div');
+  tooltip.className = 'number-tooltip';
+  tooltip.style.display = 'none';
+  document.body.appendChild(tooltip);
+
+  adjacencyList.forEach((token, i) => {
+    if (!token.element.classList.contains('prominent-number')) return;
+
+    token.element.addEventListener('mouseenter', () => {
+      const sequence = [];
+      let left = i;
+
+      // move left
+      while (left >= 0 && adjacencyList[left].element.classList.contains('prominent-number')) {
+        left--;
+      }
+      left++; // step back to first
+
+      // move right
+      let right = i;
+      while (right < adjacencyList.length && adjacencyList[right].element.classList.contains('prominent-number')) {
+        right++;
+      }
+      right--; // last one in sequence
+
+      // build full number
+      for (let j = left; j <= right; j++) {
+        sequence.push(adjacencyList[j].text.replace(/[,]/g, ''));
+      }
+
+      const fullNumber = sequence.join('');
+      tooltip.textContent = fullNumber + ' (' + numberToWords(parseInt(fullNumber)) + ')';
+
+
+      const rect = token.element.getBoundingClientRect();
+      tooltip.style.left = `${rect.left + window.scrollX}px`;
+      tooltip.style.top = `${rect.top + window.scrollY - 24}px`;
+      tooltip.style.display = 'block';
+    });
+
+    token.element.addEventListener('mouseleave', () => {
+      tooltip.style.display = 'none';
+    });
+  });
+}
+
+function attachNumberHover(adjacencyList) {
+  const tooltip = document.createElement('div');
+  tooltip.className = 'number-tooltip';
+  tooltip.style.display = 'none';
+  document.body.appendChild(tooltip);
+
+  adjacencyList.forEach((token, i) => {
+    if (!token.element.classList.contains('prominent-number')) return;
+
+    token.element.addEventListener('mouseenter', () => {
+      const sequence = [];
+      let left = i;
+
+      // move left
+      while (left >= 0 && adjacencyList[left].element.classList.contains('prominent-number')) {
+        left--;
+      }
+      left++;
+
+      // move right
+      let right = i;
+      while (right < adjacencyList.length && adjacencyList[right].element.classList.contains('prominent-number')) {
+        right++;
+      }
+      right--;
+
+      for (let j = left; j <= right; j++) {
+        sequence.push(adjacencyList[j]);
+      }
+
+      const textParts = sequence.map(t => t.text).join(' ');
+
+      const numericParts = sequence.map(t => {
+        const word = t.text.toLowerCase();
+        if (numberWords[word]) return numberWords[word];
+        if (isHyphenatedNumber(word)) {
+          const [p1, p2] = word.split('-');
+          return numberWords[p1] + '-' + numberWords[p2];
+        }
+        return word;
+      }).join(' ');
+
+      tooltip.textContent = `${textParts} → ${numericParts}`;
+
+      const rect = token.element.getBoundingClientRect();
+      tooltip.style.left = `${rect.left + window.scrollX}px`;
+      tooltip.style.top = `${rect.top + window.scrollY + 24}px`;
+      tooltip.style.display = 'block';
+    });
+
+    token.element.addEventListener('mouseleave', () => {
+      tooltip.style.display = 'none';
+    });
+  });
 }
 
 

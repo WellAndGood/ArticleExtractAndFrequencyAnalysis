@@ -252,6 +252,7 @@ h3 {
 
 .word.active {
   background-color: rgba(0, 0, 0, 0.25); /* Lasting darker shade when active */
+  color: black;
 }
 
 .highlighted-word {
@@ -287,4 +288,27 @@ h3 {
   color: white; /* better contrast */
   border: 2px solid darkred;
   box-shadow: 0 0 4px rgba(0,0,0,0.2);
+}
+
+.prominent-number {
+  background-color: #003366; /* dark blue */
+  color: #cce0ff;            /* light blue text */
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+.prominent-agent:hover, .prominent-number:hover {
+  color: black;
+}
+
+.number-tooltip {
+  position: absolute;
+  background: #003366;
+  color: #fff;
+  padding: 2px 6px;
+  font-size: 0.8em;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 1000;
+  white-space: nowrap;
 }

@@ -68,7 +68,7 @@ export async function countExactAgent(name, type) {
   });
 }
 
-async function getAllAgents() {
+export async function getAllAgents() {
   const db = await openDB();
   const tx = db.transaction("agents", "readonly");
   const store = tx.objectStore("agents");

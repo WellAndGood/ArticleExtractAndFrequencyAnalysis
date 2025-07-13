@@ -131,3 +131,38 @@ export function isHyphenatedNumber(word, numberWords) {
   return numberWords.hasOwnProperty(part1) && numberWords.hasOwnProperty(part2);
 }
 
+export async function practiceLemma(lemma) {
+  const db = await openAgentsDB();
+  const tx = db.transaction("lemmas", "readwrite");
+  const store = tx.objectStore("lemmas"); 
+
+  const req = store.get(lemma);
+
+  req.onsuccess = () => {
+    const data = req.result;
+    if (!data) {
+      console.warn(`Lemma ${lemma} not found`);
+      return;
+    }
+
+    data.reps += 1;
+
+    if (data.srIndex < srMapping.length - 1) {
+      data.srIndex += 1;
+    }
+
+    data.srDay = srMapping[data.srIndex];
+
+    const now = new Date();
+    data.lastUpdated = now.toISOString();
+    const nextReview = new Date(now);
+    nextReview.setDate(now.getDate() + data.srDay);
+    data.nextReview = nextReview.toISOString();
+
+    store.put(data);
+  };
+
+  tx.oncomplete = () => {
+    console.log(`Practiced ${lemma}`);
+  };
+}

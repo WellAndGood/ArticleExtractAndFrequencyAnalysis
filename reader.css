@@ -1,25 +1,29 @@
 #content {
   user-select: none;
-  -webkit-user-select: none; /* For Safari / older Chromium */
-  -moz-user-select: none;    /* For Firefox */
-  -ms-user-select: none;     /* For IE/Edge */
+  -webkit-user-select: none;
+  /* For Safari / older Chromium */
+  -moz-user-select: none;
+  /* For Firefox */
+  -ms-user-select: none;
+  /* For IE/Edge */
 
   padding: 10px 25px;
   border: 1px solid #ccc;
 }
 
 #content p {
-    line-height: 2.2;       /* Increase line height */
+  line-height: 2.2;
+  /* Increase line height */
 }
 
 
 #titleContainer h1 {
-    user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 
-    line-height: 2.0;
+  line-height: 2.0;
 }
 
 body {
@@ -31,21 +35,82 @@ body {
 }
 
 button {
-  background-color: #b9d5ff; /* Light blue */
+  background-color: #b9d5ff;
+  /* Light blue */
 }
 
 button:hover {
-  background-color: #5d99ff; /* Darker blue on hover */
+  background-color: #5d99ff;
+  /* Darker blue on hover */
   transition: background-color 0.25s ease;
 }
 
+#speechText {
+  background-color: white;
+  padding: 5px;
+  border: 1px solid black;
+}
+
+select#voiceSelect {
+  font-size: 0.7em;
+  max-width: 80%;
+}
+
+.speak-btn,
+.sentence-speak-btn {
+  all: unset;
+  /* reset everything to neutral */
+  cursor: pointer;
+  font-size: 1em;
+  /* keep the icon at text size */
+  line-height: 1;
+  margin-left: 4px;
+  display: inline;
+  /* don’t make it blocky */
+}
+
+.speak-btn:hover {
+  background-color: yellow;
+  /* Highlight on hover */
+}
+
+.speak-btn:active {
+  background-color: orange;
+  /* Or any color you like */
+}
+
+.speak-btn:hover:hover {
+  background-color: #5d99ff;
+  /* Highlight on hover */
+}
+
+.speak-btn:active {
+  background-color: #b9d5ff;
+  /* Or any color you like */
+}
+
+#playSpeech:active {
+  background-color: orange;
+}
+
+.practice-btn {
+  all: unset;
+  cursor: pointer;
+  margin-left: 4px;
+  font-size: 1em;
+  color: black;
+}
+.practice-btn:hover {
+  text-decoration: underline;
+}
+
 .suggestions {
-    border: 1px solid #ccc;
-    max-height: 150px;
-    overflow-y: auto;
-    margin-top: 2px;
-    background: #fff;
-  }
+  border: 1px solid #ccc;
+  max-height: 150px;
+  overflow-y: auto;
+  margin-top: 2px;
+  background: #fff;
+}
 
 .suggestions li {
   list-style: none;
@@ -64,14 +129,14 @@ button:hover {
 }
 
 h3 {
-    display: block;
-    font-size: 1.17em;
-    margin-block-start: 0em;
-    margin-block-end: 0em;
-    margin-inline-start: 0px;
-    margin-inline-end: 0px;
-    font-weight: bold;
-    unicode-bidi: isolate;
+  display: block;
+  font-size: 1.17em;
+  margin-block-start: 0em;
+  margin-block-end: 0em;
+  margin-inline-start: 0px;
+  margin-inline-end: 0px;
+  font-weight: bold;
+  unicode-bidi: isolate;
 }
 
 #mainContent {
@@ -80,66 +145,135 @@ h3 {
 }
 
 #sidePanel,
-#agentPanel {
-    position: fixed;
-    top: 0;
-    right: 0;
-    width: 250px;
-    height: 100%;
-    background-color: #f4f4f4;
-    border-left: 1px solid #ccc;
-    box-shadow: -2px 0 5px rgba(0,0,0,0.2);
-    overflow-y: auto;
-    padding: 10px;
-    transform: translateX(100%);        /* Hidden by default (offscreen to the right) */
-    transition: transform 0.3s ease;
-    z-index: 20;
-    line-height: 1.0;
+#agentPanel, 
+#speechPanel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 260px;
+  height: 100%;
+  background-color: #f4f4f4;
+  border-left: 1px solid #ccc;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+  overflow-y: auto;
+  padding: 10px 0px 10px 10px;
+  transform: translateX(100%);
+  /* Hidden by default (offscreen to the right) */
+  transition: transform 0.3s ease;
+  z-index: 20;
+  line-height: 1.0;
 }
 
 #sidePanel.open,
 #agentPanel.open {
-    transform: translateX(0);           /* Slide in when open */
+  transform: translateX(0);
+  /* Slide in when open */
+}
+
+#shortcutsBtn {
+  position: fixed;
+  top: 10px;
+  right: 360px;
+  z-index: 1000;
+  padding: 3px 7px;
+  background-color: #333;
+  color: white;
+  cursor: pointer;
+  border-radius: 4px;
+  z-index: 21;
+  font-size: 10px;
+}
+
+#shortcutsPanel {
+  display: none;
+  position: fixed;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: white;
+  border-bottom: 2px solid #ccc;
+  padding: 2px 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+  width: auto;
+  max-width: 400px;
+  font-size: 0.9em;
+  line-height: 0.1;
+}
+
+#shortcutsH3 {
+  padding: 5px 5px;
+}
+
+#shortcutsPanel ul {
+  list-style: disc inside;
+  padding: 0;
+  margin: 0;
+}
+
+#shortcutsPanel li {
+  line-height: 0.5;
+  font-size: 0.95em;
+}
+
+#shortcutsPanel h3 {
+  margin-top: 0;
+  font-size: 1.1em;
 }
 
 #togglePanelBtn {
-    position: fixed;
-    top: 10px;
-    right: 260px;                       /* Sits just left of the panel */
-    padding: 3px 7px;
-    background-color: #333;
-    color: white;
-    cursor: pointer;
-    border-radius: 4px;
-    z-index: 21;
-    font-size: 10px;
+  position: fixed;
+  top: 10px;
+  right: 280px;
+  /* Sits just left of the panel */
+  padding: 3px 7px;
+  background-color: #333;
+  color: white;
+  cursor: pointer;
+  border-radius: 4px;
+  z-index: 21;
+  font-size: 10px;
 }
 
 #topWordsTable {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 9px;
+  table-layout: auto;
+  width: auto;
+  margin: 0 auto;
+  border-collapse: collapse;
+  font-size: 9px;
 }
 
 #topWordsTable th,
 #topWordsTable td {
-    padding: 1px 1px;
-    text-align: left;
-    border-bottom: 1px solid #ccc;
-    font-size: 9px;
+  padding: 1px 3px;
+  text-align: left;
+  border-bottom: 1px solid #ccc;
+  font-size: 9px;
 }
 
 #topWordsTable tr:hover {
-    background-color: #f0f0f0;
-    cursor: default;
+  background-color: #f0f0f0;
+  cursor: default;
 }
 
 #topWordsTable tr.selected {
-    background-color: #d32f2f;  /* Dark red or use your preferred color */
-    color: white;
+  background-color: #d32f2f;
+  /* Dark red or use your preferred color */
+  color: white;
 }
 
-#closeAgentPanel {
+#topWordsList td, 
+#topWordsList th {
+  border-right: 1px solid #ccc;
+  padding: 2px 4px;
+}
+
+#topWordsList td:last-child,
+#topWordsList th:last-child {
+  border-right: none;
+}
+
+#closeAgentPanel, #closeShortcutsPanel, #closeSpeechPanel, #closeSidePanel {
   position: absolute;
   top: 5px;
   right: 5px;
@@ -147,6 +281,10 @@ h3 {
   border: none;
   font-size: 18px;
   cursor: pointer;
+}
+
+#closeSpeechPanel {
+  right: 20px !important;
 }
 
 #agentTypes {
@@ -158,12 +296,13 @@ h3 {
 
 /* Bright red border for highlighted article words */
 .word.highlighted-from-table {
-    outline: 1px solid red;
-    outline-offset: 1px;
+  outline: 1px solid red;
+  outline-offset: 1px;
 }
 
 .word {
-  position: relative;  /* ✅ Necessary for absolute positioning inside */
+  position: relative;
+  /* ✅ Necessary for absolute positioning inside */
   display: inline-block;
   padding: 1px 1px;
   margin: 0px;
@@ -175,129 +314,146 @@ h3 {
 }
 
 .pos-badge {
-    position: absolute;
-    transform: none;        /* Remove previous translate offset */
-    font-size: 0.6em;
-    color: white;
-    background-color: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(0, 0, 0, 0.8);
-    padding: 1px 3px;
-    border-radius: 3px;
-    pointer-events: none; 
-    line-height: 1;
-    font-family: monospace;
-    z-index: 2;
+  position: absolute;
+  transform: none;
+  /* Remove previous translate offset */
+  font-size: 0.6em;
+  color: white;
+  background-color: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 0, 0, 0.8);
+  padding: 1px 3px;
+  border-radius: 3px;
+  pointer-events: none;
+  line-height: 1;
+  font-family: monospace;
+  z-index: 2;
 }
 
 /* Default (Body content) */
 .body-word .pos-badge {
-    bottom: -6px;
-    right: -6px;
+  bottom: -6px;
+  right: -6px;
 }
 
 /* Tighter position for title words */
 .title-word .pos-badge {
-    bottom: -4px;
-    right: -4px;
+  bottom: -4px;
+  right: -4px;
 }
 
 .word:hover {
-  background-color: rgba(0, 0, 0, 0.1);  /* Slight dark hover effect */
+  background-color: rgba(0, 0, 0, 0.1);
+  /* Slight dark hover effect */
   cursor: pointer;
 }
 
 .custom-tooltip {
-    position: absolute;
-    background: rgba(0, 0, 0, 0.85);
-    color: white;
-    padding: 6px 8px;
-    border-radius: 4px;
-    font-size: 10px;
-    line-height: 1.2;
+  position: absolute;
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 1.2;
 
-    max-width: 90vw;                    /* ✅ Prevent viewport overflow but allow long lines */
-    white-space: nowrap;                /* ✅ Force single-line unless viewport forces wrap */
-    overflow-wrap: normal;              /* ✅ Prevent internal word breaking */
-    text-overflow: ellipsis;            /* ✅ Optional: Add "..." when truncated (if desired) */
+  max-width: 90vw;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  text-overflow: ellipsis;
 
-    z-index: 10;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-    pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
 
-    /* Default position to the right of the hovered word */
-    right: auto;
-    left: 100%;
-    top: 0;
-    transform: translateX(8px);
+  /* Default position to the right of the hovered word */
+  right: auto;
+  left: 100%;
+  top: 0;
+  transform: translateX(8px);
 
-    display: inline-block;
-    text-align: left;
+  display: inline-block;
+  text-align: left;
 }
+
 .word.shift-left .custom-tooltip {
-    left: auto;
-    right: 100%;
-    transform: translateX(-8px);
+  left: auto;
+  right: 100%;
+  transform: translateX(-8px);
 }
 
 .word:hover {
-    position: relative;  /* Needed for absolute positioning of tooltip */
+  position: relative;
+  /* Needed for absolute positioning of tooltip */
 }
 
 /* ✅ When "shift-left" class is added, flip tooltip to left */
 .word.shift-left:hover::after {
-    left: auto;
-    right: 100%;
-    transform: translateX(-8px);
+  left: auto;
+  right: 100%;
+  transform: translateX(-8px);
 }
 
 .word.active {
-  background-color: rgba(0, 0, 0, 0.25); /* Lasting darker shade when active */
+  background-color: rgba(0, 0, 0, 0.25);
+  /* Lasting darker shade when active */
   color: black;
 }
 
 .highlighted-word {
-  position: relative;/* Light yellow for visibility */
+  position: relative;
+  /* Light yellow for visibility */
 }
 
 .rank-tier-1 {
-  background-color: #c8e6c9; /* Light green */
+  background-color: #c8e6c9;
+  /* Light green */
 }
 
 .rank-tier-2 {
-  background-color: #fff9c4; /* Light yellow */
+  background-color: #fff9c4;
+  /* Light yellow */
 }
 
 .rank-tier-3 {
-  background-color: #ffe0b2; /* Light orange */
+  background-color: #ffe0b2;
+  /* Light orange */
 }
 
 .rank-tier-4 {
-  background-color: #ffcdd2; /* Light red/pink */
+  background-color: #ffcdd2;
+  /* Light red/pink */
 }
 
 .rank-tier-5 {
-  background-color: #d1c4e9; /* Light purple */
+  background-color: #d1c4e9;
+  /* Light purple */
 }
 
 .rank-tier-default {
-  background-color: #e0e0e0; /* Light gray (fallback) */
+  background-color: #e0e0e0;
+  /* Light gray (fallback) */
 }
 
 .prominent-agent {
   background-color: crimson;
-  color: white; /* better contrast */
+  color: white;
+  /* better contrast */
   border: 2px solid darkred;
-  box-shadow: 0 0 4px rgba(0,0,0,0.2);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
 }
 
-.prominent-number {
-  background-color: #003366; /* dark blue */
-  color: #cce0ff;            /* light blue text */
+.prominent-number,
+.prominent-digit {
+  background-color: #003366;
+  /* dark blue */
+  color: #cce0ff;
+  /* light blue text */
   border-radius: 2px;
   padding: 0 2px;
 }
 
-.prominent-agent:hover, .prominent-number:hover {
+.prominent-agent:hover,
+.prominent-number:hover {
   color: black;
 }
 

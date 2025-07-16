@@ -14,6 +14,33 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    const manualEnterButton = document.getElementById("manualEnter");
+    
+    const manualTitleLabel = document.getElementById("manualTitleLabel");
+    const manualBodyLabel = document.getElementById("manualBodyLabel");
+
+    const manualTitleText = document.getElementById("manualTitleText");
+    const manualBodyText = document.getElementById("manualBodyText");
+
+    manualEnterButton.addEventListener("click", () => { 
+        const titleStyle = manualTitleText.style.display;
+        console.log("Manual Enter button clicked. Current title style:", titleStyle);
+        if (titleStyle === "none" || titleStyle === "") {
+            manualTitleLabel.style.display = "block";
+            manualBodyLabel.style.display = "block";
+            manualTitleText.style.display = "block";
+            manualBodyText.style.display = "block";
+            exportButton.style.display = "block";
+        } else if (titleStyle === "block") {
+            manualTitleLabel.style.display = "none";
+            manualBodyLabel.style.display = "none";
+            manualTitleText.style.display = "none";
+            manualBodyText.style.display = "none";
+            exportButton.style.display = "none";
+        }
+    }); 
+
+
     button.addEventListener("click", async () => {
         console.log("Button clicked...");
 
@@ -62,6 +89,12 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("Export button with ID 'exportButton' not found in popup.html.");
     } else {
         exportButton.addEventListener("click", () => {
+
+            if (manualBodyText.value != "") {
+                lastExtractedArticle = manualBodyText.value;
+                articleTitle = manualTitleText.value;
+            } 
+
             console.log("Export button clicked...");
             if (!lastExtractedArticle) {
                 console.warn("No article text available for export.");
@@ -132,9 +165,3 @@ function improveSpacing(text) {
         // Normalize excessive line breaks
         .replace(/\n{3,}/g, '\n\n');
 }
-
-// chrome.runtime.onMessage.addListener((message) => {
-//     if (message.action === "openReader") {
-//         document.getElementById("content").innerText = message.content;
-//     }
-// });
